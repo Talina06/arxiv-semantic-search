@@ -1,0 +1,41 @@
+# Ignore virtual environment
+venv/
+.env
+*.venv
+Pipfile
+Pipfile.lock
+.idea
+
+# Ignore compiled Python files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore logs and temporary files
+*.log
+*.out
+*.err
+*.swp
+*.swo
+*.swn
+
+# Ignore cache and temporary files
+.cache/
+*.bak
+*.tmp
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore credentials or config files
+config.json
+.env
+secrets.json
+
+# Ignore dependency logs
+requirements
