@@ -17,7 +17,7 @@ import logging
 # Logging setup
 logging.basicConfig(
     format="%(asctime)s [%(levelname)s] - %(message)s",
-    level=logging.INFO,  # You can change this to logging.DEBUG for more verbose logging
+    level=logging.INFO,
     handlers=[
         logging.StreamHandler(),  # To output logs to the console
         logging.FileHandler("arxiv_semantic_search.log")  # To save logs to a file
