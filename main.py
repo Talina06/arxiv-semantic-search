@@ -4,6 +4,7 @@ import arxiv
 import requests
 import pdfplumber
 import numpy as np
+import streamlit as st
 from sentence_transformers import SentenceTransformer
 from datetime import datetime
 from scipy.spatial.distance import cosine
@@ -166,22 +167,60 @@ class ArxivSemanticSearch:
         return top_results
 
 
+# if __name__ == "__main__":
+#     processor = ArxivSemanticSearch(couchbase_host="localhost", bucket_name="arxiv")
+#
+#     # Fetch and process papers
+#     topic = "deep learning"  # Modify as needed
+#     processor.process_papers(topic, max_results=3)
+#
+#     # Perform semantic search
+#     user_query = input("Enter your search query: ")
+#     search_results = processor.search(user_query, top_k=3)
+#
+#     print("\n🔎 **Top Search Results:**\n")
+#     for idx, result in enumerate(search_results):
+#         print(f"📄 **[{idx+1}] {result['title']}**")
+#         print(f"🔗 [Read Paper]({result['url']})")
+#         print(f"📄 **PDF Link:** {result['pdf_url']}")
+#         print(f"📖 **Summary:** {result['summary']}")
+#         print(f"🔢 Similarity Score: {result['similarity_score']:.4f}")
+#         print("-" * 80)
+
+
+# Streamlit UI
+def main():
+    st.title("Arxiv Semantic Search")
+
+    # Input for search query
+    query = st.text_input("Enter search query (e.g., 'deep learning'): ")
+
+    if st.button("Search"):
+        if query:
+            processor = ArxivSemanticSearch(couchbase_host="localhost", bucket_name="arxiv")
+
+            # Perform semantic search
+            search_results = processor.search(query, top_k=3)
+
+            # Display search results
+            st.subheader("🔎 Top Search Results:")
+            for idx, result in enumerate(search_results):
+                st.markdown(f"**[{idx+1}] {result['title']}**")
+                st.markdown(f"[Read Paper]({result['url']})")
+                st.markdown(f"**PDF Link:** {result['pdf_url']}")
+                st.markdown(f"**Summary:** {result['summary']}")
+                st.markdown(f"**Similarity Score:** {result['similarity_score']:.4f}")
+                st.markdown("-" * 80)
+        else:
+            st.error("Please enter a search query.")
+
+    # Button to trigger paper processing (for demonstration)
+    if st.button("Fetch and Process Papers"):
+        processor = ArxivSemanticSearch(couchbase_host="localhost", bucket_name="arxiv")
+        topic = "deep learning"  # Modify as needed
+        processor.process_papers(topic, max_results=3)
+        st.success("Papers processed successfully!")
+
+
 if __name__ == "__main__":
-    processor = ArxivSemanticSearch(couchbase_host="localhost", bucket_name="arxiv")
-
-    # Fetch and process papers
-    topic = "deep learning"  # Modify as needed
-    processor.process_papers(topic, max_results=3)
-
-    # Perform semantic search
-    user_query = input("Enter your search query: ")
-    search_results = processor.search(user_query, top_k=3)
-
-    print("\n🔎 **Top Search Results:**\n")
-    for idx, result in enumerate(search_results):
-        print(f"📄 **[{idx+1}] {result['title']}**")
-        print(f"🔗 [Read Paper]({result['url']})")
-        print(f"📄 **PDF Link:** {result['pdf_url']}")
-        print(f"📖 **Summary:** {result['summary']}")
-        print(f"🔢 Similarity Score: {result['similarity_score']:.4f}")
-        print("-" * 80)
+    main()

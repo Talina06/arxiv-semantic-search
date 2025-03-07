@@ -97,7 +97,7 @@ pip install -r requirements.txt
 
 ### **4.1 Run the Script to Store Papers**  
 ```bash
-python semantic_search.py
+streamlit run main.py
 ```
 - The script will:  
   - Fetch research papers from **arXiv**  
@@ -163,6 +163,6 @@ rm -rf venv
 - Setup and fetch papers (**Completed**)  
 - Store in Couchbase and generate embeddings (**Completed**)  
 - Perform semantic search (**Completed**)  
-- Build a Web API for search queries (**Upcoming**)  
+- Build a Web API for search queries (**Completed**)  
 
 ---
