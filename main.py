@@ -1,6 +1,5 @@
 import io
 import json
-import arxiv
 import requests
 import pdfplumber
 import numpy as np
@@ -12,7 +11,7 @@ from couchbase.cluster import Cluster, ClusterOptions
 from couchbase.auth import PasswordAuthenticator
 from couchbase.exceptions import CouchbaseException
 import logging
-
+import arxiv
 
 # Logging setup
 logging.basicConfig(
@@ -36,22 +35,22 @@ class ArxivSemanticSearch:
         self.embedding_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
         logger.info("SentenceTransformer model loaded.")
 
-        self.client = arxiv.Client()
-
         # Connect to Couchbase
         try:
-            self.cluster = Cluster(f"couchbase://{couchbase_host}", ClusterOptions(PasswordAuthenticator("Administrator", "password")))
+            self.cluster = Cluster(f"couchbase://{couchbase_host}",
+                                   ClusterOptions(PasswordAuthenticator("Administrator", "password")))
             self.bucket = self.cluster.bucket(bucket_name)
             self.collection = self.bucket.default_collection()
             logger.info(f"Connected to Couchbase on {couchbase_host}.")
         except CouchbaseException as e:
             logger.error(f"Failed to connect to Couchbase: {e}")
             raise
+
         # Ensure required indexes exist
         self.ensure_indexes()
 
     def ensure_indexes(self):
-        """Creates necessary indexes in Couchbase for querying embeddings."""
+        """Creates necessary indexes in Couchbase for querying embeddings and feedback."""
         try:
             query_service = self.cluster.query
             query_service("CREATE PRIMARY INDEX IF NOT EXISTS ON `arxiv`;")
@@ -64,12 +63,13 @@ class ArxivSemanticSearch:
         """Fetches research papers from arXiv."""
         try:
             search = arxiv.Search(query=query, max_results=max_results, sort_by=arxiv.SortCriterion.SubmittedDate)
-            papers = list(self.client.results(search))
+            papers = list(search.results())
             logger.info(f"Fetched {len(papers)} papers for query: {query}")
             return papers
         except Exception as e:
             logger.error(f"Error fetching papers: {e}")
             return []
+
     def fetch_pdf_in_memory(self, pdf_url):
         """Fetches a PDF from arXiv and loads it into memory."""
         response = requests.get(pdf_url, stream=True)
@@ -95,6 +95,7 @@ class ArxivSemanticSearch:
         chunks = [" ".join(words[i: i + chunk_size]) for i in range(0, len(words), chunk_size)]
         logger.debug(f"Text chunked into {len(chunks)} parts.")
         return chunks
+
     def generate_embeddings(self, text_chunks):
         """Generates embeddings for each text chunk."""
         return [self.embedding_model.encode(chunk).tolist() for chunk in text_chunks]
@@ -113,6 +114,35 @@ class ArxivSemanticSearch:
             logger.info(f"Stored embeddings for {paper_id}.")
         except CouchbaseException as e:
             logger.error(f"Error storing {paper_id} in Couchbase: {e}")
+
+    def store_feedback_in_couchbase(self, paper_id, feedback, query):
+        """Stores user feedback for a paper in Couchbase."""
+        feedback_id = f"feedback_{paper_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        feedback_data = {
+            "paper_id": paper_id,
+            "feedback": feedback,
+            "query": query,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        try:
+            self.collection.upsert(feedback_id, feedback_data)
+            logger.info(f"Feedback stored for paper {paper_id} with feedback: {feedback}")
+        except CouchbaseException as e:
+            logger.error(f"Error storing feedback for {paper_id}: {e}")
+
+    def store_query_feedback_in_couchbase(self, query, feedback=None):
+        """Stores feedback for the entire search query (including default 'None')."""
+        feedback_id = f"query_feedback_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        feedback_data = {
+            "query": query,
+            "feedback": feedback if feedback is not None else "None",  # Default to 'None' if no feedback provided
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        try:
+            self.collection.upsert(feedback_id, feedback_data)
+            logger.info(f"Search query feedback stored with feedback: {feedback if feedback else 'None'}")
+        except CouchbaseException as e:
+            logger.error(f"Error storing query feedback: {e}")
 
     def process_papers(self, query, max_results=5):
         """Fetches papers, processes PDFs in memory, generates embeddings, and stores JSON in Couchbase."""
@@ -198,28 +228,6 @@ class ArxivSemanticSearch:
         return top_results
 
 
-# if __name__ == "__main__":
-#     processor = ArxivSemanticSearch(couchbase_host="localhost", bucket_name="arxiv")
-#
-#     # Fetch and process papers
-#     topic = "deep learning"  # Modify as needed
-#     processor.process_papers(topic, max_results=3)
-#
-#     # Perform semantic search
-#     user_query = input("Enter your search query: ")
-#     search_results = processor.search(user_query, top_k=3)
-#
-#     print("\n🔎 **Top Search Results:**\n")
-#     for idx, result in enumerate(search_results):
-#         print(f"📄 **[{idx+1}] {result['title']}**")
-#         print(f"🔗 [Read Paper]({result['url']})")
-#         print(f"📄 **PDF Link:** {result['pdf_url']}")
-#         print(f"📖 **Summary:** {result['summary']}")
-#         print(f"🔢 Similarity Score: {result['similarity_score']:.4f}")
-#         print("-" * 80)
-
-
-# Streamlit UI
 def main():
     st.title("Arxiv Semantic Search")
 
@@ -236,22 +244,38 @@ def main():
             # Display search results
             st.subheader("🔎 Top Search Results:")
             for idx, result in enumerate(search_results):
-                st.markdown(f"**[{idx+1}] {result['title']}**")
+                st.markdown(f"**[{idx + 1}] {result['title']}**")
                 st.markdown(f"[Read Paper]({result['url']})")
                 st.markdown(f"**PDF Link:** {result['pdf_url']}")
                 st.markdown(f"**Summary:** {result['summary']}")
                 st.markdown(f"**Similarity Score:** {result['similarity_score']:.4f}")
                 st.markdown("-" * 80)
+
+                # Feedback for each result
+                feedback = st.radio(
+                    f"Was the result for **{result['title']}** useful?",
+                    options=["please select", "👍", "👎"],
+                    key=f"feedback_{idx}",  # Unique key for each feedback
+                    horizontal=True
+                )
+
+                # Store feedback when the user submits
+                if st.button(f"Submit Feedback for {result['title']}", key=f"submit_{idx}"):
+                    if feedback != "please select":
+                        processor.store_feedback_in_couchbase(result["paper_id"], feedback, query)
+                        st.success(f"Feedback for '{result['title']}' has been recorded as: {feedback}")
+                    else:
+                        st.warning(f"Please select feedback (👍 or 👎) for '{result['title']}'.")
+
         else:
             st.error("Please enter a search query.")
 
     # Button to trigger paper processing (for demonstration)
     if st.button("Fetch and Process Papers"):
         processor = ArxivSemanticSearch(couchbase_host="localhost", bucket_name="arxiv")
-        topic = "deep learning"  # Modify as needed
+        topic = "deep learning"
         processor.process_papers(topic, max_results=3)
         st.success("Papers processed successfully!")
-
 
 if __name__ == "__main__":
     main()
