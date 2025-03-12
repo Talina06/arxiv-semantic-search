@@ -227,7 +227,7 @@ class ArxivSemanticSearch:
         logger.info(f"Top {top_k} search results returned.")
         return top_results
 
-
+# Streamlit UI
 def main():
     st.title("Arxiv Semantic Search")
 
