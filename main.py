@@ -57,12 +57,33 @@ class SemanticSearcher:
 
 
 # ---------------------- Run Streamlit ---------------------- #
+# Function to display paper details nicely
+def display_search_results(results, db):
+    st.subheader("🔎 Top Search Results:")
+
+    for idx, (paper_id, data) in enumerate(results):
+        paper = db.get_document(paper_id)
+
+        # Display the paper title with a clickable link
+        st.markdown(f"#### **[{paper['title']}]({paper['url']})**")
+
+        # Display the summary (or placeholder if no summary exists)
+        summary = paper.get('summary', 'No summary available for this paper.')
+        pdf_link = paper.get('pdf_url', 'No PDF link available.')
+        st.markdown(f"**Summary:** {summary}... [Read More]({pdf_link})")
+
+        # Display similarity score
+        st.markdown(f"**Similarity Score:** {data['highest_similarity']:.4f}")
+        st.markdown("---")  # Horizontal line for separation
+
+
+# Streamlit UI
 st.title("🔎 Arxiv Semantic Search")
+
 query = st.text_input("Enter search query:")
 if st.button("Search") and query:
     db = CouchbaseDB()
     searcher = SemanticSearcher(db)
     results = searcher.search(query, top_k=5)
-    for paper_id, data in results:
-        paper = db.get_document(paper_id)
-        st.write(f"📄 **[{paper['title']}]({paper['url']})**\n{paper['summary']}\n🔍 **Similarity Score:** {data['highest_similarity']:.4f}")
+
+    display_search_results(results, db)
