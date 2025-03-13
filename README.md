@@ -1,16 +1,27 @@
-# **Arxiv Semantic Search - Setup Guide (macOS)**  
+# **Arxiv Semantic Search - Setup Guide**
 
-This guide provides step-by-step instructions to **set up and run** the **Arxiv Semantic Search** project on macOS. The system will:  
+This guide provides step-by-step instructions to **set up and run** the **Arxiv Semantic Search** project on your operating system. The system will:
 
-- Fetch research papers from **arXiv**  
-- Process and store them in **Couchbase**  
-- Generate **embeddings** using **sentence-transformers**  
-- Perform **semantic search** to find the most relevant papers  
-- Provide **paper links, summaries, and metadata**  
+- Fetch research papers from **arXiv**
+- Process and store them in **Couchbase**
+- Generate **embeddings** using **sentence-transformers**
+- Perform **semantic search** to find the most relevant papers
+- Provide **paper links, summaries, and metadata**
 
 ---
 
-## **1. Install Prerequisites**  
+## **Introduction**
+
+The **Arxiv Semantic Search** project is designed to fetch research papers from **arXiv**, process them, store relevant data and embeddings in **Couchbase**, and then allow users to perform **semantic search** to find the most relevant papers based on their query. Here's a brief breakdown of the steps:
+
+1. **Fetch Research Papers**: The system fetches papers from arXiv using specific query categories.
+2. **Process and Store**: The papers are processed, summaries are generated, and embeddings are stored in **Couchbase** for later use.
+3. **Perform Semantic Search**: After the papers are processed, you can enter queries to find the most relevant papers based on their content.
+4. **Get Results**: The search returns relevant papers along with links, summaries, and similarity scores to the input query.
+
+---
+
+## **1. Install Prerequisites**
 
 ### **1.1 Install Homebrew (If Not Installed)**  
 ```bash
@@ -25,7 +36,7 @@ brew install python3
 
 ---
 
-## **2. Set Up Couchbase**  
+## **2. Set Up Couchbase**
 
 ### **2.1 Download and Install Couchbase Server**  
 1. Download Couchbase Community Edition from the official website:  
@@ -57,7 +68,7 @@ brew install python3
 
 ---
 
-## **3. Set Up the Project**  
+## **3. Set Up the Project**
 
 ### **3.1 Clone or Create the Project Directory**  
 ```bash
@@ -93,23 +104,27 @@ pip install -r requirements.txt
 
 ---
 
-## **4. Run the Full Application**  
+## **4. Run the Full Application**
 
 ### **4.1 Run the Script to Store Papers**  
 ```bash
-streamlit run main.py
+python process_papers.py
 ```
-- The script will:  
-  - Fetch research papers from **arXiv**  
-  - Extract and store them in **Couchbase**  
-  - Generate **embeddings** for semantic search  
+- The script will:
+  - Fetch research papers from **arXiv**
+  - Extract and store them in **Couchbase**
+  - Generate **embeddings** for semantic search
 
 ### **4.2 Perform Semantic Search**  
 Once the papers are stored, enter your query when prompted:  
 ```bash
+streamlit run main.py
+```
+
+```
 Enter your search query: Transformer models for NLP
 ```
-The system will return:  
+The system will return:
 - Paper Title  
 - Paper URL  
 - PDF Link  
@@ -118,7 +133,7 @@ The system will return:
 
 ---
 
-## **5. Example Output**  
+## **5. Example Output**
 ```plaintext
 Top Search Results:
 
@@ -138,7 +153,7 @@ Similarity Score: 0.8756
 
 ---
 
-## **6. Additional Notes**  
+## **6. Additional Notes**
 
 ### **6.1 Restart Couchbase**  
 If Couchbase stops working, restart it using:  
@@ -155,14 +170,5 @@ deactivate
 ```bash
 rm -rf venv
 ```
-
----
-
-## **7. Next Steps**  
-
-- Setup and fetch papers (**Completed**)  
-- Store in Couchbase and generate embeddings (**Completed**)  
-- Perform semantic search (**Completed**)  
-- Build a Web API for search queries (**Completed**)  
 
 ---
